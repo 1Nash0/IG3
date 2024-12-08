@@ -19,10 +19,11 @@ float alpha = 5000.0;
 vec3 Ke;
 
 //Propiedades de la luz
-vec3 Ia = vec3 (0.3);
-vec3 Id = vec3 (1.0);
+vec3 Ia = vec3 (0.5);
 vec3 Is = vec3 (1.0);
-vec3 lpos = vec3 (0.0); 
+
+uniform vec3 Id;
+uniform vec3 lpos;
 
 vec3 shade();
 

@@ -1,10 +1,10 @@
-#include "BOX.h"
+ï»¿#include "BOX.h"
 #include "auxiliar.h"
-
 
 #include <gl/glew.h>
 #define SOLVE_FGLUT_WARNING
 #include <gl/freeglut.h> 
+#include <IGL/IGlib.h>
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -18,18 +18,30 @@
 //////////////////////////////////////////////////////////////
 
 //Matrices
-glm::mat4	proj = glm::mat4(1.0f);
-glm::mat4	view = glm::mat4(1.0f);
-glm::mat4	model = glm::mat4(1.0f);
+glm::mat4 proj = glm::mat4(1.0f);
+glm::mat4 view = glm::mat4(1.0f);
+glm::mat4 model = glm::mat4(1.0f);
 
+//Variables globales para la posiciÃ³n e intensidad de la luz
+glm::vec3 lpos = glm::vec3(0.0f, 0.0f, 0.0f); // PosiciÃ³n inicial
+glm::vec3 Id = glm::vec3(0.0f, 0.0f, 0.0f); // Intensidad inicial
+GLuint lposLoc; // Identificador para la posiciÃ³n de la luz
+GLuint IdLoc; // Identificador para la intensidad de la luz
+
+// Variables para la cï¿½mara
+glm::mat4 viewC = glm::mat4(1.0f); // Matriz de vista inicial
+float alpha = 0.10f; // ï¿½ngulo de rotaciï¿½n
+float inc = 0.1f;    // Incremento para zoom
 
 //////////////////////////////////////////////////////////////
 // Variables que nos dan acceso a Objetos OpenGL
 //////////////////////////////////////////////////////////////
+
 //Por definir
 unsigned int vshader;
 unsigned int fshader;
 unsigned int program;
+
 
 //Variables Uniform
 int uModelViewMat;
@@ -61,14 +73,14 @@ unsigned int emiTexId;
 //////////////////////////////////////////////////////////////
 //!!Por implementar
 
-//Declaración de CB
+//DeclaraciÃ³n de CB
 void renderFunc();
 void resizeFunc(int width, int height);
 void idleFunc();
 void keyboardFunc(unsigned char key, int x, int y);
 void mouseFunc(int button, int state, int x, int y);
 
-//Funciones de inicialización y destrucción
+//Funciones de inicializaciÃ³n y destrucciÃ³n
 void initContext(int argc, char** argv);
 void initOGL();
 void initShader(const char *vname, const char *fname);
@@ -117,7 +129,7 @@ void initContext(int argc, char** argv)
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
 	glutInitWindowSize(500, 500);// No tiene nada que ver con el contexto
 	glutInitWindowPosition(0, 0);// 
-	glutCreateWindow("Prácticas OGL");
+	glutCreateWindow("PrÃ¡cticas OGL");
 
 	//Extensiones:
 	GLenum is_ok = glewInit();
@@ -201,6 +213,11 @@ void initShader(const char *vname, const char *fname)
 	}
 	std::cout << "Todo OK" << std::endl;
 
+	glUseProgram(program);
+
+	lposLoc = glGetUniformLocation(program, "lpos");
+	IdLoc = glGetUniformLocation(program, "Id");
+
 	uNormalMat = glGetUniformLocation(program, "normal");
 	uModelViewMat = glGetUniformLocation(program, "modelView");
 	uModelViewProjMat = glGetUniformLocation(program, "modelViewProj");
@@ -208,7 +225,6 @@ void initShader(const char *vname, const char *fname)
 	uColorTex = glGetUniformLocation(program, "colorTex");
 	uEmiTex = glGetUniformLocation(program, "emiTex");
 
-	glUseProgram(program);
 	if (uColorTex != -1)
 	{
 		glUniform1i(uColorTex, 0);
@@ -286,9 +302,9 @@ void initObj1()
 	texCoordVBO = buff[3]; triangleIndexVBO = buff[4];
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, posVBO);//activación como buffer de attrib.
+	glBindBuffer(GL_ARRAY_BUFFER, posVBO);//activaciÃ³n como buffer de attrib.
 	glBufferData(GL_ARRAY_BUFFER, // obj activo 
-		cubeNVertex * 3 * sizeof(float), // tamaño en bytes
+		cubeNVertex * 3 * sizeof(float), // tamaÃ±o en bytes
 		cubeVertexPos, // puntero a los datos
 		GL_STATIC_DRAW); //
 
@@ -342,7 +358,7 @@ GLuint loadShader(const char *fileName, GLenum type){
 	char* source = loadStringFromFile(fileName, fileLen);
 	
 	//////////////////////////////////////////////
-	//Creación y compilación del Shader
+	//CreaciÃ³n y compilaciÃ³n del Shader
 	GLuint shader;
 	shader = glCreateShader(type);
 
@@ -352,7 +368,7 @@ GLuint loadShader(const char *fileName, GLenum type){
 	glCompileShader(shader);
 	delete[] source;
 
-	//Comprobamos que se compiló bien
+	//Comprobamos que se compilÃ³ bien
 	GLint compiled;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
 	if (!compiled)
@@ -397,7 +413,7 @@ unsigned int loadTex(const char *fileName){
 	glTexStorage2D(GL_TEXTURE_2D, 4, GL_RGBA8, w, h);
 	glTexSubImage2D(GL_TEXTURE_2D, 0,//Level
 		0, 0, //offset
-		w, h, // tamaño de los datos que subo
+		w, h, // tamaÃ±o de los datos que subo
 		GL_RGBA, GL_UNSIGNED_BYTE,
 		(GLvoid*)map);
 
@@ -469,8 +485,22 @@ void resizeFunc(int width, int height)
 {
 	glViewport(0, 0, width, height);
 
-	glutPostRedisplay();
+	//CreaciÃ³n de la matriz de projecciÃ³n que mantiene el aspecto de la ventana
+	glm::mat4 projW = glm::mat4(1.0f);
 
+	float a_ratio = float(width) / float(height);
+	float n = 1.0f;
+	float f = 10.0f;
+
+	projW[0][0] = 1.0f / glm::tan(3.141592f / 6.0f);
+	projW[1][1] = proj[0][0] * a_ratio;
+	projW[2][2] = (f + n) / (n - f);
+	projW[2][3] = -1.f;
+	projW[3][2] = 2.f * f * n / (n - f);
+
+	IGlib::setProjMat(projW);
+
+	glutPostRedisplay();
 
 }
 
@@ -478,14 +508,91 @@ void idleFunc()
 {
 	model = glm::mat4(1.0f);
 	static float angle = 0.0f;
-	angle = (angle > 3.141592f * 2.0f) ? 0 : angle + 0.01f;
+	angle = (angle > 3.141592f * 2.0f) ? 0 : angle + 0.001f;
 	model = glm::rotate(model, angle, glm::vec3(1.0f, 1.0f, 0.0f));
 
 	glutPostRedisplay();
 
 }
 
-void keyboardFunc(unsigned char key, int x, int y){}
+void keyboardFunc(unsigned char key, int x, int y)
+{
+		float move= 0.1f;
+		float intensity = 0.1f;
+
+		switch (key) {
+
+		case 'a':
+			viewC = viewC * glm::rotate(glm::mat4(1.0f), alpha, glm::vec3(0.0f, 1.0f, 0.0f));
+			break;
+		case 'd':
+			viewC = viewC * glm::rotate(glm::mat4(1.0f), -alpha, glm::vec3(0.0f, 1.0f, 0.0f));
+			break;
+		case 'w':
+			viewC = viewC * glm::rotate(glm::mat4(1.0f), alpha, glm::vec3(1.0f, 0.0f, 0.0f));
+			break;
+		case 's':
+			viewC = viewC * glm::rotate(glm::mat4(1.0f), -alpha, glm::vec3(1.0f, 0.0f, 0.0f));
+			break;
+		case 'r':
+			viewC = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -inc)) * viewC;
+			break;
+		case 'f':
+			viewC = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, inc)) * viewC;
+			break;
+
+			//CAMBIOS DE LA LUZ
+		case 'j': //Mover la luz a la izquierda
+			lpos.x -= move;
+			std::cout << "lpos: " << lpos.x << ", " << lpos.y << ", " << lpos.z << std::endl;
+			break;
+		case 'l': //Mover la luz a la derecha
+			lpos.x += move;
+			std::cout << "lpos: " << lpos.x << ", " << lpos.y << ", " << lpos.z << std::endl;
+			break;
+		case 'u': //Mover la luz arriba
+			lpos.y += move;
+			std::cout << "lpos: " << lpos.x << ", " << lpos.y << ", " << lpos.z << std::endl;
+			break;
+		case 'h': //Mover la luz abajo
+			lpos.y -= move;
+			std::cout << "lpos: " << lpos.x << ", " << lpos.y << ", " << lpos.z << std::endl;
+			break;
+		case 'k'://Mover la luz hacia atrÃ¡s
+			lpos.z -= move;
+			std::cout << "lpos: " << lpos.x << ", " << lpos.y << ", " << lpos.z << std::endl;
+			break;
+		case 'i'://Mover la luz hacia delante
+			lpos.z += move;
+			std::cout << "lpos: " << lpos.x << ", " << lpos.y << ", " << lpos.z << std::endl;
+			break;
+		case '+': //Aumenta la intensidad
+			Id += glm::vec3(intensity);
+			std::cout << "Id: " << Id.x << ", " << Id.y << ", " << Id.z << std::endl;
+			break;
+		case '-': //Disminuye la intensidad
+			Id -= glm::vec3(intensity);
+			std::cout << "Id: " << Id.x << ", " << Id.y << ", " << Id.z << std::endl;
+			break;
+		}
+
+		IGlib::setViewMat(viewC);
+		
+		// Actualizar los valores en el shader
+		glUseProgram(program);
+		glUniform3fv(lposLoc, 1, &lpos[0]);
+		glUniform3fv(IdLoc, 1, &Id[0]);
+		glUseProgram(0);
+
+
+	
+}
+
+
+
+
+
+
 void mouseFunc(int button, int state, int x, int y){}
 
 
