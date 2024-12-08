@@ -13,9 +13,15 @@
 #include <iostream>
 
 
+
 //////////////////////////////////////////////////////////////
 // Datos que se almacenan en la memoria de la CPU
 //////////////////////////////////////////////////////////////
+
+//Variables cámara
+glm::vec3 cameraPosition = glm::vec3(0.0f, 0.3f, 8.0f);
+glm::vec3 targetPosition = glm::vec3(0.0f, 0.0f, -30.0f);
+glm::vec3 upVector = glm::vec3(0.0f, 1.0f, 0.0f);
 
 //Matrices
 glm::mat4 proj = glm::mat4(1.0f);
@@ -28,10 +34,10 @@ glm::vec3 Id = glm::vec3(0.0f, 0.0f, 0.0f); // Intensidad inicial
 GLuint lposLoc; // Identificador para la posición de la luz
 GLuint IdLoc; // Identificador para la intensidad de la luz
 
-// Variables para la c�mara
-glm::mat4 viewC = glm::mat4(1.0f); // Matriz de vista inicial
-float alpha = 0.10f; // �ngulo de rotaci�n
-float inc = 0.1f;    // Incremento para zoom
+//// Variables para la c�mara
+//glm::mat4 viewC = glm::mat4(1.0f); // Matriz de vista inicial
+//float alpha = 0.10f; // �ngulo de rotaci�n
+//float inc = 0.1f;    // Incremento para zoom
 
 //////////////////////////////////////////////////////////////
 // Variables que nos dan acceso a Objetos OpenGL
@@ -169,6 +175,9 @@ void initOGL()
 	view = glm::mat4(1.0f);
 	view[3].z = -6;
 
+	view = glm::mat4(1.0f);
+	view = glm::lookAt(cameraPosition, targetPosition, upVector);
+
 }
 void destroy()
 {
@@ -285,6 +294,7 @@ void initObj()
 	colorTexId = loadTex("../img/color2.png");
 	emiTexId = loadTex("../img/emissive.png");
 }
+
 
 void initObj1()
 {
@@ -483,24 +493,26 @@ void renderFunc()
 
 void resizeFunc(int width, int height)
 {
-	glViewport(0, 0, width, height);
+	//glViewport(0, 0, width, height);
 
-	//Creación de la matriz de projección que mantiene el aspecto de la ventana
-	glm::mat4 projW = glm::mat4(1.0f);
 
-	float a_ratio = float(width) / float(height);
-	float n = 1.0f;
-	float f = 10.0f;
+	////Creación de la matriz de projección que mantiene el aspecto de la ventana
+	//glm::mat4 proj = glm::mat4(1.0f);
 
-	projW[0][0] = 1.0f / glm::tan(3.141592f / 6.0f);
-	projW[1][1] = proj[0][0] * a_ratio;
-	projW[2][2] = (f + n) / (n - f);
-	projW[2][3] = -1.f;
-	projW[3][2] = 2.f * f * n / (n - f);
 
-	IGlib::setProjMat(projW);
+	//float a_ratio = float(width) / float(height);
+	//float n = 1.0f;
+	//float f = 10.0f;
 
-	glutPostRedisplay();
+	//proj[0][0] = 1.0f / glm::tan(3.141592f / 6.0f);
+	//proj[1][1] = proj[0][0] * a_ratio;
+	//proj[2][2] = (f + n) / (n - f);
+	//proj[2][3] = -1.f;
+	//proj[3][2] = 2.f * f * n / (n - f);
+
+	//IGlib::setProjMat(proj);
+
+	//glutPostRedisplay();
 
 }
 
@@ -519,27 +531,30 @@ void keyboardFunc(unsigned char key, int x, int y)
 {
 		float move= 0.1f;
 		float intensity = 0.1f;
+		float rotation = 0.5f;
 
 		switch (key) {
 
-		case 'a':
-			viewC = viewC * glm::rotate(glm::mat4(1.0f), alpha, glm::vec3(0.0f, 1.0f, 0.0f));
-			break;
-		case 'd':
-			viewC = viewC * glm::rotate(glm::mat4(1.0f), -alpha, glm::vec3(0.0f, 1.0f, 0.0f));
-			break;
-		case 'w':
-			viewC = viewC * glm::rotate(glm::mat4(1.0f), alpha, glm::vec3(1.0f, 0.0f, 0.0f));
-			break;
-		case 's':
-			viewC = viewC * glm::rotate(glm::mat4(1.0f), -alpha, glm::vec3(1.0f, 0.0f, 0.0f));
-			break;
-		case 'r':
-			viewC = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -inc)) * viewC;
-			break;
-		case 'f':
-			viewC = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, inc)) * viewC;
-			break;
+			
+			case 'w':
+				cameraPosition.z -= move;
+				break;
+			case 's':
+				cameraPosition.z += move;
+				break;
+			case 'a':
+				cameraPosition.x -= move;
+				break;
+			case 'd':
+				cameraPosition.x += move;
+				break;
+			case 'e':
+				targetPosition.x += rotation;
+				break;
+			case 'q':
+				targetPosition.x -= rotation;
+				break;
+		
 
 			//CAMBIOS DE LA LUZ
 		case 'j': //Mover la luz a la izquierda
@@ -576,13 +591,15 @@ void keyboardFunc(unsigned char key, int x, int y)
 			break;
 		}
 
-		IGlib::setViewMat(viewC);
-		
+		//IGlib::setViewMat(viewC);
+		view = glm::lookAt(cameraPosition, targetPosition, upVector);
 		// Actualizar los valores en el shader
 		glUseProgram(program);
 		glUniform3fv(lposLoc, 1, &lpos[0]);
 		glUniform3fv(IdLoc, 1, &Id[0]);
 		glUseProgram(0);
+
+
 
 
 	
