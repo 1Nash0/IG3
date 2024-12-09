@@ -493,26 +493,26 @@ void renderFunc()
 
 void resizeFunc(int width, int height)
 {
-	//glViewport(0, 0, width, height);
+	glViewport(0, 0, width, height);
 
 
-	////Creación de la matriz de projección que mantiene el aspecto de la ventana
-	//glm::mat4 proj = glm::mat4(1.0f);
+	//Creación de la matriz de projección que mantiene el aspecto de la ventana
+	glm::mat4 projW = glm::mat4(1.0f);
 
 
-	//float a_ratio = float(width) / float(height);
-	//float n = 1.0f;
-	//float f = 10.0f;
+	float a_ratio = float(width) / float(height); 
+	float n = 1.0f;
+	float f = 10.0f;
 
-	//proj[0][0] = 1.0f / glm::tan(3.141592f / 6.0f);
-	//proj[1][1] = proj[0][0] * a_ratio;
-	//proj[2][2] = (f + n) / (n - f);
-	//proj[2][3] = -1.f;
-	//proj[3][2] = 2.f * f * n / (n - f);
+	projW[0][0] = 1.0f / glm::tan(3.141592f / 6.0f);
+	projW[1][1] = proj[0][0] * a_ratio;
+	projW[2][2] = (f + n) / (n - f);
+	projW[2][3] = -1.f;
+	projW[3][2] = 2.f * f * n / (n - f);
 
-	//IGlib::setProjMat(proj);
+	proj = projW;
 
-	//glutPostRedisplay();
+	glutPostRedisplay();
 
 }
 
