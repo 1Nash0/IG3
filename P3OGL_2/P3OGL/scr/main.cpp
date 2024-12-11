@@ -48,7 +48,10 @@ GLuint IdLoc; // Identificador para la intensidad de la luz
 //Por definir
 unsigned int vshader;
 unsigned int fshader;
+unsigned int vshader1;
+unsigned int fshader1;
 unsigned int program;
+unsigned int program1;
 
 
 //Variables Uniform
@@ -74,6 +77,9 @@ unsigned int triangleIndexVBO;
 unsigned int colorTexId;
 unsigned int emiTexId;
 
+unsigned int colorTexId1;
+unsigned int emiTexId1;
+
 
 
 //////////////////////////////////////////////////////////////
@@ -92,6 +98,7 @@ void mouseFunc(int button, int state, int x, int y);
 void initContext(int argc, char** argv);
 void initOGL();
 void initShader(const char *vname, const char *fname);
+void initShader1(const char* vname, const char* fname);
 void initObj();
 void destroy();
 
@@ -100,10 +107,13 @@ void destroy();
 //!Por implementar
 GLuint loadShader(const char *fileName, GLenum type);
 
+GLuint loadShader1(const char* fileName, GLenum type);
 //Crea una textura, la configura, la sube a OpenGL, 
 //y devuelve el identificador de la textura 
 //!!Por implementar
 unsigned int loadTex(const char *fileName);
+
+
 
 
 int main(int argc, char** argv)
@@ -115,6 +125,7 @@ int main(int argc, char** argv)
 	initOGL();
 	//initShader("../shaders_P3/shader.v0.vert", "../shaders_P3/shader.v0.frag");
 	initShader("../shaders_P3/shader.v1.vert", "../shaders_P3/shader.v1.frag");
+	initShader1("../shaders_P3/shader.v2.vert", "../shaders_P3/shader.v2.frag");
 	initObj();
 
 	glutMainLoop();
@@ -186,6 +197,7 @@ void destroy()
 	glDeleteShader(vshader);
 	glDeleteShader(fshader);
 	glDeleteProgram(program);
+	glDeleteProgram(program1);
 
 	glDeleteBuffers(1, &posVBO);
 	glDeleteBuffers(1, &colorVBO);
@@ -201,27 +213,43 @@ void initShader(const char *vname, const char *fname)
 	vshader = loadShader(vname, GL_VERTEX_SHADER);
 	fshader = loadShader(fname, GL_FRAGMENT_SHADER);
 
+
 	program = glCreateProgram();
+	
 	
 	glAttachShader(program, vshader);
 	glAttachShader(program, fshader);
 	glLinkProgram(program);
 
+
+
 	int linked;
 	glGetProgramiv(program, GL_LINK_STATUS, &linked);
+
+
+
 	if (!linked)
 	{
 		//Calculamos una cadena de error
 		GLint logLen;
 		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLen);
+
+
+
 		char* logString = new char[logLen];
 		glGetProgramInfoLog(program, logLen, NULL, logString);
+
+
 		std::cout << "Error: " << logString << std::endl;
 		delete[] logString;
 		glDeleteProgram(program);
 		program = 0;
+
+
 		exit(-1);
 	}
+
+
 	std::cout << "Todo OK" << std::endl;
 
 	glUseProgram(program);
@@ -235,6 +263,76 @@ void initShader(const char *vname, const char *fname)
 
 	uColorTex = glGetUniformLocation(program, "colorTex");
 	uEmiTex = glGetUniformLocation(program, "emiTex");
+
+	if (uColorTex != -1)
+	{
+		glUniform1i(uColorTex, 0);
+	}
+	if (uEmiTex != -1)
+	{
+		glUniform1i(uEmiTex, 1);
+	}
+
+	//int borrar = glGetUniformLocation(program, "borrar");
+	//int borrar = glGetAttribLocation(program, "inTexCoord");
+	//int borrar = glGetAttribLocation(program, "inPos");
+}
+
+void initShader1(const char* vname, const char* fname)
+{
+
+
+	vshader1 = loadShader1(vname, GL_VERTEX_SHADER);
+	fshader1 = loadShader1(fname, GL_FRAGMENT_SHADER);
+
+
+	program1 = glCreateProgram();
+
+	glAttachShader(program1, vshader1);
+	glAttachShader(program1, fshader1);
+	glLinkProgram(program1);
+
+	int linked;
+
+
+	glGetProgramiv(program1, GL_LINK_STATUS, &linked);
+
+	if (!linked)
+	{
+		//Calculamos una cadena de error
+		GLint logLen;
+
+		glGetProgramiv(program1, GL_INFO_LOG_LENGTH, &logLen);
+
+		char* logString = new char[logLen];
+
+		glGetProgramInfoLog(program1, logLen, NULL, logString);
+
+		std::cout << "Error: " << logString << std::endl;
+		delete[] logString;
+
+
+		glDeleteProgram(program1);
+		program1 = 0;
+
+		exit(-1);
+	}
+
+
+	std::cout << "Todo OK" << std::endl;
+
+
+	glUseProgram(program1);
+
+	lposLoc = glGetUniformLocation(program1, "lpos");
+	IdLoc = glGetUniformLocation(program1, "Id");
+
+	uNormalMat = glGetUniformLocation(program1, "normal");
+	uModelViewMat = glGetUniformLocation(program1, "modelView");
+	uModelViewProjMat = glGetUniformLocation(program1, "modelViewProj");
+
+	uColorTex = glGetUniformLocation(program1, "colorTex");
+	uEmiTex = glGetUniformLocation(program1, "emiTex");
 
 	if (uColorTex != -1)
 	{
@@ -296,6 +394,10 @@ void initObj()
 
 	colorTexId = loadTex("../img/color2.png");
 	emiTexId = loadTex("../img/emissive.png");
+	colorTexId1 = loadTex("../img/color3.png");
+	emiTexId1 = loadTex("../img/emissive.png");
+
+	
 }
 
 
@@ -400,6 +502,40 @@ GLuint loadShader(const char *fileName, GLenum type){
 	return shader; 
 }
 
+GLuint loadShader1(const char* fileName, GLenum type) {
+
+	unsigned int fileLen;
+	char* source = loadStringFromFile(fileName, fileLen);
+
+	//////////////////////////////////////////////
+	//Creación y compilación del Shader
+	GLuint shader;
+	shader = glCreateShader(type);
+
+	glShaderSource(shader, 1,
+		(const GLchar**)&source, (const GLint*)&fileLen);
+
+	glCompileShader(shader);
+	delete[] source;
+
+	//Comprobamos que se compiló bien
+	GLint compiled;
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+	if (!compiled)
+	{
+		//Calculamos una cadena de error
+		GLint logLen;
+		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLen);
+		char* logString = new char[logLen];
+		glGetShaderInfoLog(shader, logLen, NULL, logString);
+		std::cout << "Error: " << logString << std::endl;
+		delete[] logString;
+		glDeleteShader(shader);
+		exit(-1);
+	}
+
+	return shader;
+}
 
 unsigned int loadTex(const char *fileName){
 	unsigned char* map;
@@ -450,7 +586,7 @@ void renderFunc()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glUseProgram(program);
-
+	
 
 	//Matrices cubo 1
 
@@ -479,6 +615,9 @@ void renderFunc()
 
 	//Matrices cubo 2
 
+	glUseProgram(program1);
+
+
 	glm::mat4 modelView2 = view * model2;
 	glm::mat4 modelViewProj2 = proj * view * model2;
 	glm::mat4 normal2 = glm::transpose(glm::inverse(modelView2));
@@ -491,9 +630,9 @@ void renderFunc()
 		glUniformMatrix4fv(uNormalMat, 1, GL_FALSE, &(normal2[0][0]));
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, colorTexId);
+	glBindTexture(GL_TEXTURE_2D, colorTexId1);
 	glActiveTexture(GL_TEXTURE0 + 1);
-	glBindTexture(GL_TEXTURE_2D, emiTexId);
+	glBindTexture(GL_TEXTURE_2D, emiTexId1);
 
 
 	glBindVertexArray(vao);
@@ -630,6 +769,10 @@ void keyboardFunc(unsigned char key, int x, int y)
 		glUseProgram(program);
 		glUniform3fv(lposLoc, 1, &lpos[0]);
 		glUniform3fv(IdLoc, 1, &Id[0]);
+
+		glUseProgram(program1);
+		glUniform3fv(lposLoc, 1, &lpos[0]);
+		glUniform3fv(IdLoc, 1, &Id[0]);
 		glUseProgram(0);
 
 
@@ -637,8 +780,6 @@ void keyboardFunc(unsigned char key, int x, int y)
 
 	
 }
-
-
 
 
 
