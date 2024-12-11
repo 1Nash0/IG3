@@ -1,4 +1,4 @@
-﻿#include "BOX.h"
+#include "BOX.h"
 #include "auxiliar.h"
 
 #include <gl/glew.h>
@@ -27,6 +27,8 @@ glm::vec3 upVector = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::mat4 proj = glm::mat4(1.0f);
 glm::mat4 view = glm::mat4(1.0f);
 glm::mat4 model = glm::mat4(1.0f);
+
+glm::mat4 model2 = glm::mat4(1.0f); //Matriz model 
 
 //Variables globales para la posición e intensidad de la luz
 glm::vec3 lpos = glm::vec3(0.0f, 0.0f, 0.0f); // Posición inicial
@@ -290,6 +292,7 @@ void initObj()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buff);
 
 	model = glm::mat4(1.0f);
+	model2 = glm::mat4(1.0f);
 
 	colorTexId = loadTex("../img/color2.png");
 	emiTexId = loadTex("../img/emissive.png");
@@ -447,18 +450,56 @@ void renderFunc()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glUseProgram(program);
-	
+
+
+	//Matrices cubo 1
+
 	glm::mat4 modelView = view * model;
 	glm::mat4 modelViewProj = proj * view * model;
 	glm::mat4 normal = glm::transpose(glm::inverse(modelView));
-	
-	
+
+
 	if (uModelViewMat != -1)
-		glUniformMatrix4fv(uModelViewMat, 1, GL_FALSE,	&(modelView[0][0]));
+		glUniformMatrix4fv(uModelViewMat, 1, GL_FALSE, &(modelView[0][0]));
 	if (uModelViewProjMat != -1)
-		glUniformMatrix4fv(uModelViewProjMat, 1, GL_FALSE,	&(modelViewProj[0][0]));
+		glUniformMatrix4fv(uModelViewProjMat, 1, GL_FALSE, &(modelViewProj[0][0]));
 	if (uNormalMat != -1)
 		glUniformMatrix4fv(uNormalMat, 1, GL_FALSE, &(normal[0][0]));
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, colorTexId);
+	glActiveTexture(GL_TEXTURE0 + 1);
+	glBindTexture(GL_TEXTURE_2D, emiTexId);
+
+
+
+
+	glDrawElements(GL_TRIANGLES, cubeNTriangleIndex * 3, GL_UNSIGNED_INT, (void*)(11 * sizeof(float) * cubeNVertex));
+
+
+	//Matrices cubo 2
+
+	glm::mat4 modelView2 = view * model2;
+	glm::mat4 modelViewProj2 = proj * view * model2;
+	glm::mat4 normal2 = glm::transpose(glm::inverse(modelView2));
+
+	if (uModelViewMat != -1)
+		glUniformMatrix4fv(uModelViewMat, 1, GL_FALSE, &(modelView2[0][0]));
+	if (uModelViewProjMat != -1)
+		glUniformMatrix4fv(uModelViewProjMat, 1, GL_FALSE, &(modelViewProj2[0][0]));
+	if (uNormalMat != -1)
+		glUniformMatrix4fv(uNormalMat, 1, GL_FALSE, &(normal2[0][0]));
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, colorTexId);
+	glActiveTexture(GL_TEXTURE0 + 1);
+	glBindTexture(GL_TEXTURE_2D, emiTexId);
+
+
+	glBindVertexArray(vao);
+
+	glDrawElements(GL_TRIANGLES, cubeNTriangleIndex * 3, GL_UNSIGNED_INT, (void*)(11 * sizeof(float) * cubeNVertex));
+
 
 	////glActiveTexture(GL_TEXTURE0);
 	////glBindTexture(GL_TEXTURE_2D, colorTexId);
@@ -473,19 +514,6 @@ void renderFunc()
 	//{
 	//	glUniform1i(uEmiTex, 1);
 	//}
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, colorTexId);
-	glActiveTexture(GL_TEXTURE0 + 1);
-	glBindTexture(GL_TEXTURE_2D, emiTexId);
-
-
-	glBindVertexArray(vao);
-	
-	glDrawElements(GL_TRIANGLES, cubeNTriangleIndex * 3, GL_UNSIGNED_INT, (void*) (11 * sizeof(float)* cubeNVertex));
-
-
-
 
 	glutSwapBuffers();
 }
@@ -522,6 +550,11 @@ void idleFunc()
 	static float angle = 0.0f;
 	angle = (angle > 3.141592f * 2.0f) ? 0 : angle + 0.001f;
 	model = glm::rotate(model, angle, glm::vec3(1.0f, 1.0f, 0.0f));
+
+	model2 = glm::mat4(1.0);
+	model2 = glm::rotate(model2, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+	model2 = glm::translate(model2, glm::vec3(5.0f, 0.0f, 0.0f));
+	model2 = glm::rotate(model2, angle, glm::vec3(0.0f, 1.0f, 0.0f));
 
 	glutPostRedisplay();
 
