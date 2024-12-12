@@ -33,8 +33,8 @@ glm::mat4 model2 = glm::mat4(1.0f); //Matriz model
 //Variables globales para la posición e intensidad de la luz
 glm::vec3 lpos = glm::vec3(0.0f, 0.0f, 0.0f); // Posición inicial
 glm::vec3 Id = glm::vec3(0.0f, 0.0f, 0.0f); // Intensidad inicial
-GLuint lposLoc; // Identificador para la posición de la luz
-GLuint IdLoc; // Identificador para la intensidad de la luz
+int lposLoc; // Identificador para la posición de la luz
+int IdLoc; // Identificador para la intensidad de la luz
 
 //// Variables para la c�mara
 //glm::mat4 viewC = glm::mat4(1.0f); // Matriz de vista inicial
@@ -687,7 +687,7 @@ void idleFunc()
 {
 	model = glm::mat4(1.0f);
 	static float angle = 0.0f;
-	angle = (angle > 3.141592f * 2.0f) ? 0 : angle + 0.001f;
+	angle = (angle > 3.141592f * 2.0f) ? 0 : angle + 0.01f;
 	model = glm::rotate(model, angle, glm::vec3(1.0f, 1.0f, 0.0f));
 
 	model2 = glm::mat4(1.0);
